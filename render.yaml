@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: berlin-rush
+    runtime: node
+    plan: free
+    buildCommand: "echo ok"
+    startCommand: node server.js
+    healthCheckPath: /health
+    autoDeploy: true

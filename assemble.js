@@ -1,0 +1,10 @@
+const fs=require('node:fs'),path=require('node:path'),crypto=require('node:crypto');
+const dir=path.join(__dirname,'game-parts');
+const names=fs.readdirSync(dir).filter(n=>/^index-\d+\.part$/.test(n)).sort();
+if(names.length!==19)throw Error('Missing game parts');
+const content=Buffer.concat(names.map(n=>fs.readFileSync(path.join(dir,n))));
+const sha=crypto.createHash('sha1').update('blob '+content.length+'\0').update(content).digest('hex');
+if(sha!=='e43133a6d7b6d4397b00f0d61f92b36898d741bd')throw Error('Game file integrity check failed: '+sha);
+fs.mkdirSync(path.join(__dirname,'public'),{recursive:true});
+fs.writeFileSync(path.join(__dirname,'public/index.html'),content);
+console.log('Berlin Rush assembled and verified ('+content.length+' bytes)');

@@ -1,0 +1,8 @@
+{
+  "name": "berlin-rush-server",
+  "version": "1.0.0",
+  "description": "Mini-Server für Berlin Rush (Mehrspieler)",
+  "main": "server.js",
+  "scripts": { "start": "node server.js" },
+  "engines": { "node": ">=18" }
+}
