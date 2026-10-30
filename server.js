@@ -1,4 +1,3 @@
-if (!require('node:fs').existsSync(require('node:path').join(__dirname, 'public/index.html'))) require('./assemble.js');
 // Berlin Rush – Mini-Server (keine Abhängigkeiten, nur Node.js >= 18)
 // Startet: node server.js   (Port über Umgebungsvariable PORT, Standard 8080)
 // Liefert außerdem die Spieldateien aus ./public aus, so dass Spiel + Multiplayer unter EINER Adresse laufen.
