@@ -51,7 +51,7 @@ let nextId = 1;
 const CODE_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ';
 function newCode() { for (;;) { let s = ''; for (let i = 0; i < 4; i++) s += CODE_CHARS[crypto.randomInt(CODE_CHARS.length)]; if (!rooms.has(s)) return s; } }
 function lobbyMsg(room) {
-  return { t: 'lobby', room: room.code, host: room.host, racing: room.racing, players: [...room.players.values()].map((p, i) => ({ id: p.id, name: p.name, model: p.model, slot: i })) };
+  return { t: 'lobby', room: room.code, host: room.host, racing: room.racing, players: [...room.players.values()].map((p, i) => ({ id: p.id, name: p.name, model: p.model, paint: p.paint || '', slot: i })) };
 }
 function broadcast(room, obj, except) { for (const p of room.players.values()) if (p.id !== except) send(p, obj); }
 function leave(c) {
@@ -63,6 +63,7 @@ function leave(c) {
   broadcast(room, lobbyMsg(room));
   pushOnline();
 }
+const hex = (s) => (/^#[0-9a-fA-F]{6}$/.test(String(s || '')) ? String(s) : '');
 const clean = (s, n) => String(s || '').replace(/[<>&"'`]/g, '').trim().slice(0, n);
 
 function onMessage(c, text) {
@@ -78,7 +79,7 @@ function onMessage(c, text) {
         else return send(c, { t: 'err', code: 'name', msg: 'Der Name „' + name + '“ ist gerade online vergeben. Bitte einen anderen wählen.' });
       }
       if (c.key && users.get(c.key) === c) users.delete(c.key);
-      c.name = name; c.key = key; c.token = clean(m.token, 40); c.model = m.model === 'cheetah' ? 'cheetah' : 'nissan';
+      c.name = name; c.key = key; c.token = clean(m.token, 40); c.model = m.model === 'cheetah' ? 'cheetah' : 'nissan'; c.paint = hex(m.paint);
       users.set(key, c);
       send(c, { t: 'logged', name });
       pushOnline();
@@ -100,7 +101,7 @@ function onMessage(c, text) {
     }
     case 'join': {
       if (c.room) leave(c);
-      c.name = c.key ? c.name : (clean(m.name, 14) || 'Spieler'); c.model = m.model === 'cheetah' ? 'cheetah' : 'nissan';
+      c.name = c.key ? c.name : (clean(m.name, 14) || 'Spieler'); c.model = m.model === 'cheetah' ? 'cheetah' : 'nissan'; c.paint = hex(m.paint);
       let room;
       if (m.create) { room = { code: newCode(), players: new Map(), host: c.id, racing: false }; rooms.set(room.code, room); }
       else {
@@ -120,7 +121,7 @@ function onMessage(c, text) {
     case 'start': {
       const r = c.room; if (!r || r.host !== c.id) return;
       r.racing = true;
-      broadcast(r, Object.assign(lobbyMsg(r), { t: 'start', preset: clean(m.preset, 8) || 'abend', laps: 3 }));
+      broadcast(r, Object.assign(lobbyMsg(r), { t: 'start', preset: clean(m.preset, 8) || 'abend', map: clean(m.map, 12) || 'berlin', laps: 3 }));
       pushOnline();
       break;
     }

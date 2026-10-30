@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0b0f1a">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Berlin Rush">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-180.png">
+<link rel="icon" href="icon-192.png">
+<title>Berlin Rush – Kart Racing</title>
+<style>
+:root{--acc:#ffd23a;--acc2:#ff3d7f;--bg:rgba(10,14,26,.72);--line:rgba(255,255,255,.14);--txt:#f3f5fa;--mut:#a7b0c4}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;touch-action:none}
+html,body{margin:0;height:100%;background:#05070d;color:var(--txt);font-family:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;overflow:hidden}
+#app{position:fixed;inset:0}
+canvas{display:block;position:absolute;left:0;top:0}
+.hide{display:none!important}
+#loading{position:fixed;inset:0;z-index:50;background:radial-gradient(circle at 50% 40%,#16213a,#05070d);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;transition:opacity .5s}
+#loading.hide{display:flex!important;opacity:0;pointer-events:none}
+.logo{font-weight:900;letter-spacing:.06em;font-size:clamp(34px,7vw,74px);line-height:.95;text-align:center;text-transform:uppercase;font-style:italic;background:linear-gradient(180deg,#fff 10%,var(--acc) 55%,#ff8a00);-webkit-background-clip:text;background-clip:text;color:transparent;filter:drop-shadow(0 4px 18px rgba(255,150,0,.35))}
+.logo small{display:block;font-size:.28em;letter-spacing:.5em;color:var(--mut);-webkit-text-fill-color:var(--mut);font-style:normal;margin-top:.5em}
+#loadbox{width:min(320px,70vw);height:8px;border-radius:9px;background:rgba(255,255,255,.1);overflow:hidden}
+#loadbar{height:100%;width:0;background:linear-gradient(90deg,var(--acc2),var(--acc));transition:width .3s}
+#loadtext{color:var(--mut);font-size:14px}
+/* ---------- menu */
+#menu{position:fixed;inset:0;z-index:20;display:flex;align-items:center;justify-content:flex-end;padding:3vh 4vw;pointer-events:none}
+.panel{pointer-events:auto;width:min(430px,92vw);background:var(--bg);backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);border:1px solid var(--line);border-radius:22px;padding:22px 22px 18px;box-shadow:0 20px 60px rgba(0,0,0,.45);max-height:94vh;overflow:auto}
+.panel .logo{font-size:clamp(30px,5vw,50px);text-align:left;margin-bottom:6px}
+.panel .logo small{letter-spacing:.32em}
+.lbl{font-size:12px;letter-spacing:.14em;text-transform:uppercase;color:var(--mut);margin:14px 0 6px}
+.seg{display:flex;gap:6px}
+.seg button{flex:1;padding:11px 8px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.05);color:var(--txt);font:600 14px/1.1 inherit;font-family:inherit;cursor:pointer;touch-action:manipulation;transition:.15s}
+.seg button.on{background:linear-gradient(180deg,var(--acc),#ffab1a);color:#1b1300;border-color:transparent;box-shadow:0 4px 16px rgba(255,190,40,.35)}
+.seg button:hover:not(.on){background:rgba(255,255,255,.12)}
+.big{width:100%;margin-top:18px;padding:16px;border-radius:15px;border:0;background:linear-gradient(90deg,var(--acc2),#ff7a2f);color:#fff;font:800 19px/1 inherit;font-family:inherit;letter-spacing:.08em;text-transform:uppercase;cursor:pointer;box-shadow:0 8px 26px rgba(255,61,127,.4);touch-action:manipulation}
+.big:active{transform:translateY(1px)}
+.ghost{background:rgba(255,255,255,.08);box-shadow:none;border:1px solid var(--line);font-size:15px;padding:13px}
+#car-name{font-weight:800;font-size:19px;margin:2px 0 0}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:5px 12px;font-size:13px;color:var(--mut);margin-top:12px}
+.keys b{color:var(--txt);font-weight:700}
+kbd{display:inline-block;min-width:22px;padding:2px 6px;border-radius:6px;border:1px solid var(--line);background:rgba(255,255,255,.08);color:var(--txt);font:600 12px inherit;font-family:inherit;text-align:center}
+body.touch .keys.kb{display:none}
+.keys.tc{display:none}
+body.touch .keys.tc{display:grid}
+/* ---------- HUD */
+#hud{position:fixed;inset:0;z-index:10;pointer-events:none;font-variant-numeric:tabular-nums}
+.glass{background:var(--bg);backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);border:1px solid var(--line);border-radius:16px}
+#pos{position:absolute;left:max(16px,env(safe-area-inset-left));top:max(14px,env(safe-area-inset-top));display:flex;align-items:baseline;gap:2px;padding:6px 16px 8px}
+#pos-n{font-size:clamp(44px,7vw,70px);font-weight:900;font-style:italic;color:var(--acc);line-height:1;text-shadow:0 3px 14px rgba(0,0,0,.5)}
+#pos-t{font-size:clamp(18px,2.6vw,26px);font-weight:800;color:var(--txt);opacity:.8}
+#board{position:absolute;left:max(16px,env(safe-area-inset-left));top:calc(max(14px,env(safe-area-inset-top)) + 92px);font-size:13px;display:flex;flex-direction:column;gap:3px}
+#board .r{padding:3px 10px;border-radius:8px;background:rgba(10,14,26,.5);width:max-content;min-width:150px;color:#dbe1f0}
+#board .r.me{background:rgba(255,210,58,.9);color:#1b1300;font-weight:800}
+#board b{display:inline-block;width:16px}
+#topright{position:absolute;right:max(16px,env(safe-area-inset-right));top:max(14px,env(safe-area-inset-top));text-align:right;padding:8px 16px}
+#lap{font-size:clamp(16px,2.2vw,22px);font-weight:800}
+#time{font-size:clamp(14px,1.8vw,18px);color:var(--mut);margin-top:2px}
+#item-box{position:absolute;left:50%;top:max(14px,env(safe-area-inset-top));transform:translateX(-50%);width:clamp(74px,10vw,100px);height:clamp(74px,10vw,100px);border-radius:20px;display:flex;align-items:center;justify-content:center}
+#item-slot{width:100%;height:100%;display:flex;align-items:center;justify-content:center;position:relative;padding:12px;transition:transform .15s}
+#item-slot svg{width:100%;height:100%;filter:drop-shadow(0 3px 6px rgba(0,0,0,.5))}
+#item-slot.has{animation:pop .25s}
+#item-slot.roll svg{opacity:.8}
+#item-slot .cnt{position:absolute;right:6px;bottom:4px;font-weight:900;font-size:22px;color:var(--acc);text-shadow:0 2px 6px #000}
+#item-slot .iname{position:absolute;left:50%;top:100%;transform:translateX(-50%);margin-top:6px;font-size:12px;font-weight:700;color:#fff;background:rgba(10,14,26,.7);padding:2px 8px;border-radius:7px;white-space:nowrap}
+@keyframes pop{0%{transform:scale(.6)}60%{transform:scale(1.15)}100%{transform:scale(1)}}
+#speedo{position:absolute;right:max(16px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));text-align:right;padding:8px 16px 10px;min-width:150px}
+#speed-n{font-size:clamp(40px,6vw,62px);font-weight:900;font-style:italic;line-height:1}
+#speed-u{font-size:13px;color:var(--mut);font-weight:700;margin-left:4px}
+#drift{height:7px;border-radius:5px;background:rgba(255,255,255,.12);margin-top:6px;overflow:hidden}
+#drift-fill{height:100%;width:0;background:#6bd0ff;border-radius:5px}
+#drift-fill.l1{background:linear-gradient(90deg,#42b8ff,#7fe0ff)}
+#drift-fill.l2{background:linear-gradient(90deg,#ff9a1a,#ffd23a);box-shadow:0 0 12px #ffb02e}
+#minimap{position:absolute;top:auto;left:max(16px,env(safe-area-inset-left));bottom:max(16px,env(safe-area-inset-bottom));border-radius:14px;background:rgba(10,14,26,.62);border:1px solid var(--line)}
+#boost-glow{position:absolute;inset:0;opacity:0;transition:opacity .2s;background:radial-gradient(ellipse at center,rgba(0,0,0,0) 55%,rgba(255,150,30,.38) 100%)}
+#msg{position:absolute;left:50%;top:30%;transform:translate(-50%,-50%) scale(.7);font-size:clamp(34px,7vw,78px);font-weight:900;font-style:italic;letter-spacing:.04em;text-transform:uppercase;color:#fff;text-shadow:0 4px 22px rgba(0,0,0,.65),0 0 3px #000;opacity:0;text-align:center;white-space:nowrap;transition:opacity .15s,transform .2s}
+#msg.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+#msg.count{font-size:clamp(80px,17vw,200px);color:var(--acc)}
+#msg.go{color:var(--acc)}
+#msg.bad{color:#ff5a6e}
+#msg.good{color:#6dffb0}
+#wrong{position:absolute;left:50%;top:48%;transform:translate(-50%,-50%);background:rgba(220,30,50,.85);padding:10px 22px;border-radius:14px;font-weight:900;font-size:clamp(18px,3vw,30px);display:none;letter-spacing:.05em}
+#wrong.show{display:block;animation:blink .7s infinite alternate}
+@keyframes blink{to{opacity:.45}}
+#toast{position:fixed;left:50%;bottom:24%;transform:translateX(-50%) translateY(10px);background:rgba(10,14,26,.85);padding:8px 16px;border-radius:12px;opacity:0;transition:.25s;z-index:40;font-weight:700;pointer-events:none}
+#toast.show{opacity:1;transform:translateX(-50%)}
+.mini-btn{position:fixed;z-index:30;top:max(14px,env(safe-area-inset-top));right:max(150px,calc(env(safe-area-inset-right) + 150px));width:42px;height:42px;border-radius:12px;font-size:18px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:#fff}
+#btn-pause{right:max(16px,env(safe-area-inset-right));top:calc(max(14px,env(safe-area-inset-top)) + 76px)}
+#btn-sound{right:max(66px,calc(env(safe-area-inset-right) + 66px));top:calc(max(14px,env(safe-area-inset-top)) + 76px)}
+input{-webkit-user-select:text;user-select:text;touch-action:auto;width:100%;padding:12px 14px;border-radius:12px;border:1px solid var(--line);background:rgba(255,255,255,.08);color:var(--txt);font:600 16px inherit;font-family:inherit;outline:none}
+input:focus{border-color:var(--acc)}
+.swatches{display:flex;flex-wrap:wrap;gap:8px;margin:6px 0 2px}.swatches button{width:30px;height:30px;border-radius:50%;border:2px solid rgba(255,255,255,.35);padding:0;cursor:pointer}.swatches button.on{border-color:#fff;box-shadow:0 0 0 3px var(--acc)}
+#app:has(#menu:not(.hide)) #btn-sound,#app:has(#mp:not(.hide)) #btn-sound{left:max(12px,env(safe-area-inset-left));right:auto;top:max(12px,env(safe-area-inset-top))}
+.mcol{display:block}.brow{display:block}
+@media (max-height:520px){
+  #menu .panel{display:flex;gap:22px;width:min(780px,96vw);max-height:94vh;padding:12px 18px}
+  #menu .mcol{flex:1;min-width:0}
+  #menu .logo{font-size:30px;margin-bottom:0}
+  #menu .panel .lbl{margin:7px 0 3px;font-size:11px}
+  #menu .seg button{padding:8px 6px;font-size:13px}
+  #menu #car-name{font-size:18px}
+  #menu .big{margin-top:8px;padding:10px;font-size:16px}
+  #menu .big.ghost{font-size:14px;padding:9px}
+  #btn-start{position:static;box-shadow:0 8px 26px rgba(255,61,127,.4)}
+  #mp .panel{width:min(780px,96vw);padding:10px 18px}
+  #mp h2{font-size:24px;margin:0 0 2px}
+  #mp-connect:not(.hide),#mp-lobby:not(.hide){display:flex;gap:22px}
+  #mp .mcol{flex:1;min-width:0}
+  #mp .online{max-height:110px}
+  #mp-room{font-size:38px}
+  #mp .big{margin-top:8px;padding:10px;font-size:15px}
+  #mp .gs{margin:3px 0 6px;padding:7px}
+  #mp .row{padding:5px 10px;margin:3px 0}
+  #mp-err,#mp-err2{margin-top:4px;min-height:14px}
+  .overlay .panel{padding:10px 18px}
+  .overlay h2{font-size:26px}
+  #results .panel{width:min(640px,94vw)}
+  #res-sub{margin-bottom:6px;font-size:13px}
+  #res-list{display:grid;grid-template-columns:1fr 1fr;column-gap:8px;grid-auto-flow:row}
+  #res-list .row{padding:5px 10px;margin:3px 0;font-size:14px}
+  .brow{display:flex;gap:10px}.brow .big{margin-top:8px;padding:10px;font-size:15px}
+  #namebox .panel{width:min(460px,92vw)}
+  #invite{padding:7px 12px;font-size:14px}
+  #menu .keys{display:none!important}
+  #btn-mp{letter-spacing:.02em;font-size:13px}
+  #mp-players{display:grid;grid-template-columns:1fr 1fr;column-gap:6px}
+  #mp-players .row .m{display:none}
+}
+body.portrait #mp .row{padding:6px 10px;margin:3px 0}body.portrait #mp-players{display:grid;grid-template-columns:1fr 1fr;column-gap:6px}body.portrait #mp-players .row .m{display:none}body.portrait #mp .online{max-height:96px}body.portrait #mp-room{font-size:44px}
+@media (max-height:520px) and (min-width:700px){.brow .big{width:calc(50% - 5px)}}
+@media (max-height:520px){.swatches button{width:24px;height:24px}.swatches{gap:6px}}
+#mp-status{font-size:13px;color:var(--mut);margin:6px 0}#mp-status.ok{color:#5be37d}
+#mp .online{max-height:150px;overflow:auto;margin-bottom:8px}#mp .online .row .m{font-size:12px;color:var(--mut)}
+.row .inv{border:0;border-radius:8px;padding:7px 12px;font-weight:800;background:var(--acc);color:#1b1300}
+#mp .mut{font-size:13px;color:var(--mut);padding:6px 2px}
+details.adv{margin:8px 0;font-size:13px;color:var(--mut)}details.adv input{margin-top:6px}
+#namebox{z-index:60}#namebox .panel{text-align:left}#namebox h2{text-align:center}
+#invite{position:fixed;left:50%;top:max(10px,env(safe-area-inset-top));transform:translateX(-50%);z-index:80;display:flex;gap:10px;align-items:center;background:rgba(15,20,35,.96);border:2px solid var(--acc);color:#fff;padding:10px 14px;border-radius:14px;font-weight:700;box-shadow:0 6px 30px rgba(0,0,0,.5)}
+#invite.hide{display:none}#invite button{border:0;border-radius:8px;padding:8px 14px;font-weight:800;background:var(--acc);color:#1b1300}#invite button.ghost{background:rgba(255,255,255,.15);color:#fff}
+#mp .panel{text-align:left}#mp h2{text-align:center}
+.mp-err{color:#ff7a8a;font-size:14px;margin-top:10px;min-height:18px}
+#mp-room{font-size:54px;font-weight:900;letter-spacing:.18em;color:var(--acc);text-align:center;font-style:italic}
+.gs{background:rgba(255,255,255,.08);border:1px solid var(--line);color:var(--txt);border-radius:12px;padding:10px 14px;font:600 14px inherit;font-family:inherit;cursor:pointer;width:100%;margin:6px 0 10px;touch-action:manipulation}
+#mp-players .row .m{font-size:12px;color:var(--mut)}
+.mut{color:var(--mut);text-align:center;margin-top:12px;font-size:14px}
+/* ---------- pause / results */
+.overlay{position:fixed;inset:0;z-index:35;display:flex;align-items:center;justify-content:center;background:rgba(5,7,13,.55);backdrop-filter:blur(5px);-webkit-backdrop-filter:blur(5px)}
+.overlay .panel{text-align:center;width:min(440px,92vw)}
+.overlay h2{margin:0 0 4px;font-size:34px;font-style:italic;font-weight:900;color:var(--acc)}
+#res-sub{color:var(--mut);margin-bottom:14px}
+.row{display:flex;gap:10px;align-items:center;padding:9px 12px;border-radius:10px;background:rgba(255,255,255,.05);margin:4px 0;text-align:left}
+.row.me{background:rgba(255,210,58,.92);color:#1b1300;font-weight:800}
+.row .p{width:28px;font-weight:900}.row .n{flex:1}.row .t{font-variant-numeric:tabular-nums}
+/* ---------- touch */
+#touch{position:fixed;inset:0;z-index:15;pointer-events:none}
+.tb{position:absolute;pointer-events:auto;border-radius:50%;background:rgba(255,255,255,.14);border:2px solid rgba(255,255,255,.32);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:800;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)}
+.tb.down{background:rgba(255,210,58,.5)}
+#t-left,#t-right{width:clamp(78px,17vmin,110px);height:clamp(78px,17vmin,110px);bottom:max(26px,env(safe-area-inset-bottom));font-size:34px;border-radius:26px}
+#t-left{left:max(16px,env(safe-area-inset-left))}
+#t-right{left:calc(max(16px,env(safe-area-inset-left)) + clamp(78px,17vmin,110px) + 14px)}
+#t-gas{width:min(23vmin,138px);height:min(23vmin,138px);right:max(18px,env(safe-area-inset-right));bottom:max(24px,env(safe-area-inset-bottom));font-size:20px;background:rgba(80,220,140,.32)}
+#t-brake{width:min(15vmin,92px);height:min(15vmin,92px);right:calc(max(18px,env(safe-area-inset-right)) + min(23vmin,138px) + 12px);bottom:max(24px,env(safe-area-inset-bottom));font-size:12px}
+#t-item{width:min(19vmin,112px);height:min(19vmin,112px);right:max(22px,env(safe-area-inset-right));bottom:calc(max(24px,env(safe-area-inset-bottom)) + min(23vmin,138px) + 12px);font-size:15px;background:rgba(255,61,127,.35)}
+#t-drift{width:min(15vmin,92px);height:min(15vmin,92px);right:calc(max(18px,env(safe-area-inset-right)) + min(23vmin,138px) + 12px);bottom:calc(max(24px,env(safe-area-inset-bottom)) + min(15vmin,92px) + 12px);font-size:12px}
+body.touch #speedo{bottom:auto;top:calc(max(14px,env(safe-area-inset-top)) + 70px)}
+body.touch #minimap{bottom:calc(max(16px,env(safe-area-inset-bottom)) + 130px)}
+body.portrait #menu{align-items:flex-end;justify-content:center}
+body.portrait .panel{padding:16px}
+body.portrait #board{display:none}
+@media (max-height:520px){.panel{padding:12px 16px}.lbl{margin:8px 0 4px}.big{margin-top:10px;padding:11px}.keys{display:none}#board{display:none}#minimap{transform:scale(.8);transform-origin:left bottom}}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="hud" class="hide">
+    <div id="boost-glow"></div>
+    <div id="pos" class="glass"><span id="pos-n">4</span><span id="pos-t">/6</span></div>
+    <div id="board"></div>
+    <div id="topright" class="glass"><div id="lap">Runde 1/3</div><div id="time">0:00.00</div></div>
+    <div id="item-box" class="glass"><div id="item-slot"></div></div>
+    <div id="speedo" class="glass"><span id="speed-n">0</span><span id="speed-u">km/h</span><div id="drift"><div id="drift-fill"></div></div></div>
+    <canvas id="minimap" width="1" height="1" style="position:absolute"></canvas>
+    <div id="msg"></div>
+    <div id="wrong">FALSCHE RICHTUNG!</div>
+  </div>
+  <div id="touch" class="hide">
+    <div id="t-left" class="tb">◀</div><div id="t-right" class="tb">▶</div>
+    <div id="t-gas" class="tb">GAS</div><div id="t-brake" class="tb">BREMSE</div><div id="t-drift" class="tb">DRIFT</div><div id="t-item" class="tb">ITEM</div>
+  </div>
+  <div id="btn-pause" class="mini-btn glass hide">⏸</div>
+  <div id="btn-sound" class="mini-btn glass">🔊</div>
+  <div id="toast"></div>
+
+  <div id="menu" class="hide">
+    <div class="panel">
+      <div class="mcol">
+      <div class="logo">Berlin Rush<small>Kart Racing</small></div>
+      <div class="lbl">Dein Auto</div>
+      <div id="car-name">–</div>
+      <div class="seg" id="sel-car" style="margin-top:8px"><button data-v="nissan">Nissan R34</button><button data-v="cheetah">Cheetah Polizia</button></div>
+      <div class="lbl">Lackfarbe</div>
+      <div class="swatches" id="sel-paint"><button data-v="" title="Original"></button><button data-v="#d92b2b"></button><button data-v="#f08a1c"></button><button data-v="#f2cf1d"></button><button data-v="#2fae4a"></button><button data-v="#1fb5b0"></button><button data-v="#2b6fe0"></button><button data-v="#7a3fd1"></button><button data-v="#e357a8"></button><button data-v="#f4f4f4"></button><button data-v="#1a1a1d"></button></div>
+      </div>
+      <div class="mcol">
+      <div class="lbl">Strecke</div>
+      <div class="seg" id="sel-map"><button data-v="berlin">Berlin</button><button data-v="istanbul">Istanbul</button><button data-v="sanaa">Sanaa</button></div>
+      <div class="lbl">Gegner</div>
+      <div class="seg" id="sel-diff"><button data-v="leicht">Leicht</button><button data-v="mittel">Mittel</button><button data-v="schwer">Schwer</button></div>
+      <div class="lbl">Tageszeit</div>
+      <div class="seg" id="sel-time"><button data-v="tag">☀️ Tag</button><button data-v="abend">🌇 Abend</button><button data-v="nacht">🌙 Nacht</button></div>
+      <button class="big" id="btn-start">Rennen starten</button>
+      <button class="big ghost" id="btn-mp">👥 Mehrspieler (bis 8)</button>
+      </div>
+      <div class="keys kb">
+        <b><kbd>W</kbd><kbd>A</kbd><kbd>S</kbd><kbd>D</kbd> / Pfeile</b><span>Gas, Lenken, Bremsen</span>
+        <b><kbd>Shift</kbd></b><span>Driften → Mini-Turbo beim Loslassen</span>
+        <b><kbd>Leertaste</kbd></b><span>Item einsetzen (Rakete, Ölspur, Turbo, Schild)</span>
+        <b><kbd>R</kbd> <kbd>C</kbd> <kbd>P</kbd></b><span>Zurücksetzen · Kamera · Pause</span>
+      </div>
+      <div class="keys tc"><b>GAS</b><span>gedrückt halten · BREMSE zum Bremsen</span><b>◀ ▶</b><span>Lenken</span><b>DRIFT</b><span>halten in Kurven</span><b>ITEM</b><span>Rakete / Ölspur / Turbo / Schild</span></div>
+    </div>
+  </div>
+  <div id="mp" class="overlay hide"><div class="panel">
+  <h2>Mehrspieler</h2>
+  <div id="mp-connect">
+    <div class="mcol">
+    <div class="lbl">Dein Name</div><input id="mp-name" maxlength="14" placeholder="Name" autocomplete="off">
+    <div class="mp-status" id="mp-status"></div>
+    <div class="lbl">Jetzt online</div>
+    <div id="mp-online" class="online"></div>
+    </div>
+    <div class="mcol">
+    <button class="big" id="mp-create">Raum erstellen</button>
+    <div class="lbl">Oder Raum-Code eingeben</div>
+    <input id="mp-code" maxlength="4" placeholder="ABCD" autocapitalize="characters" autocomplete="off" style="text-transform:uppercase;letter-spacing:.2em">
+    <button class="big ghost" id="mp-join">Raum beitreten</button>
+    <details class="adv"><summary>Server-Adresse (nur ändern, wenn nötig)</summary><input id="mp-server" placeholder="wss://dein-server.onrender.com" autocapitalize="off" autocorrect="off" spellcheck="false"></details>
+    <button class="big ghost" id="mp-close">Zurück</button>
+    <div class="mp-err" id="mp-err"></div>
+    </div>
+  </div>
+  <div id="mp-lobby" class="hide">
+    <div class="mcol">
+    <div class="lbl" style="text-align:center">Raum-Code</div><div id="mp-room">----</div>
+    <button class="gs" id="mp-copy">🔗 Einladungslink teilen</button>
+    <div id="mp-players"></div>
+    </div>
+    <div class="mcol">
+    <div class="lbl">Online – zum Einladen</div>
+    <div id="mp-online2" class="online"></div>
+    <div class="lbl" id="mp-info">Tageszeit bestimmt der Host</div>
+    <button class="big" id="mp-start">Rennen starten</button>
+    <div class="mut hide" id="mp-wait">Warte auf den Host …</div>
+    <button class="big ghost" id="mp-leave">Verlassen</button>
+    <div class="mp-err" id="mp-err2"></div>
+    </div>
+  </div>
+</div></div>
+<div id="namebox" class="overlay hide"><div class="panel">
+  <h2>Willkommen!</h2>
+  <div class="lbl">Wie heißt du? (Freunde sehen diesen Namen)</div>
+  <input id="nm-input" maxlength="14" placeholder="Dein Name" autocomplete="off">
+  <button class="big" id="nm-ok">Los geht’s</button>
+  <div class="mp-err" id="nm-err"></div>
+</div></div>
+<div id="invite" class="hide"><span id="inv-text"></span><button id="inv-yes">Beitreten</button><button id="inv-no" class="ghost">✕</button></div>
+<div id="pause" class="overlay hide"><div class="panel"><h2>Pause</h2><div class="brow"><button class="big" id="btn-resume">Weiter</button><button class="big ghost" id="btn-quit">Zum Menü</button></div></div></div>
+  <div id="results" class="overlay hide"><div class="panel"><h2 id="res-title">Ziel</h2><div id="res-sub"></div><div id="res-list"></div><div class="brow"><button class="big" id="btn-again">Nochmal fahren</button><button class="big ghost" id="btn-menu">Menü</button></div></div></div>
+
+  <div id="loading"><div class="logo">Berlin Rush<small>Kart Racing</small></div><div id="loadbox"><div id="loadbar"></div></div><div id="loadtext">Lädt …</div></div>
+</div>
+<script>window.__ASSETS = {"cheetah": "
